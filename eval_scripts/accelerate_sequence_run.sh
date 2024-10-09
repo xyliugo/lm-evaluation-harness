@@ -30,6 +30,7 @@ un_eval() {
     COMMON_ARGS="--model hf \
         --model_args pretrained=$model_path \
         --apply_chat_template \
+        --fewshot_as_multiturn \
         --output_path $output_dir \
         --trust_remote_code \
         --gen_kwargs max_new_tokens=4096 \

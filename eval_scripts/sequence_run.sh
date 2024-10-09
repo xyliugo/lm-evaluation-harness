@@ -31,6 +31,7 @@ run_eval() {
         --model_args pretrained=$model_path \
         --device $DEVICE \
         --apply_chat_template \
+        --fewshot_as_multiturn \
         --output_path $output_dir \
         --trust_remote_code \
         --log_samples"
