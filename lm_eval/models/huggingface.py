@@ -568,11 +568,42 @@ class HFLM(TemplateLM):
                         model_kwargs["bnb_4bit_compute_dtype"] = get_dtype(
                             model_kwargs["bnb_4bit_compute_dtype"]
                         )
+            from transformers import (AutoModel, 
+                                      Qwen2ForCausalLM,
+                                      Qwen2VLForConditionalGeneration, 
+                                      LlavaNextForConditionalGeneration, 
+                                      LlavaOnevisionForConditionalGeneration,
+                                      )
+            def load_model(pretrained, revision, dtype, trust_remote_code, **model_kwargs):
+                model_mapping = {
+                    "Qwen2-VL": Qwen2VLForConditionalGeneration,
+                    "llava-next": LlavaNextForConditionalGeneration,
+                    "llava-onevision": LlavaOnevisionForConditionalGeneration,
+                    "Qwen2": Qwen2ForCausalLM,
+                }
 
-            self._model = self.AUTO_MODEL_CLASS.from_pretrained(
+                model_class = AutoModel  # default
+                for model_name, model_class_specific in model_mapping.items():
+                    if model_name in pretrained:
+                        model_class = model_class_specific
+                        break
+
+                try:
+                    model = model_class.from_pretrained(
+                        pretrained,
+                        revision=revision,
+                        torch_dtype=get_dtype(dtype),
+                        trust_remote_code=trust_remote_code,
+                        **model_kwargs,
+                    )
+                    return model
+                except Exception as e:
+                    raise ValueError(f"Failed to load model {pretrained} with {model_class.__name__}: {str(e)}")
+            
+            self._model = load_model(
                 pretrained,
                 revision=revision,
-                torch_dtype=get_dtype(dtype),
+                dtype=dtype,
                 trust_remote_code=trust_remote_code,
                 **model_kwargs,
             )
@@ -593,11 +624,6 @@ class HFLM(TemplateLM):
                 if autogptq is True
                 else autogptq.endswith(".safetensors"),
                 **model_kwargs,
-            )
-
-        if peft and delta:
-            raise ValueError(
-                "Cannot use both 'peft' and 'delta' options at the same time."
             )
 
         if peft:
